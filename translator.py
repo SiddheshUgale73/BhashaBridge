@@ -41,7 +41,7 @@ Return format:
 
     try:
         response = client.chat.completions.create(
-            model="llama3-8b-8192", # Using Groq's fast Llama 3 model
+            model="llama-3.1-8b-instant", # Using Groq's current Llama 3.1 model
             messages=[
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": text}
@@ -72,11 +72,3 @@ Return format:
             "translated_text": ""
         }
 
-if __name__ == "__main__":
-    # Example usage
-    sample_text = "I likes to her"
-    target_lang = "Hindi"
-    
-    print(f"Input: '{sample_text}' | Target Language: {target_lang}")
-    result = translate_text(sample_text, target_lang)
-    print(json.dumps(result, indent=2, ensure_ascii=False))

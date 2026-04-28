@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BhashaBridge</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #ffffff;
+            color: #333333;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 600px;
+            padding: 40px 20px;
+            box-sizing: border-box;
+            text-align: center;
+        }
+
+        h1 {
+            font-weight: 600;
+            font-size: 2.5rem;
+            margin-bottom: 5px;
+            color: #111;
+        }
+
+        .subtitle {
+            font-weight: 300;
+            color: #666;
+            margin-bottom: 40px;
+            font-size: 1.1rem;
+            letter-spacing: 0.5px;
+        }
+
+        .input-group {
+            text-align: left;
+            margin-bottom: 20px;
+        }
+
+        textarea {
+            width: 100%;
+            height: 120px;
+            padding: 15px;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            font-family: 'Inter', sans-serif;
+            font-size: 1rem;
+            resize: none;
+            box-sizing: border-box;
+            transition: border-color 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: #333;
+            box-shadow: 0 0 0 3px rgba(0,0,0,0.05);
+        }
+
+        .controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+
+        select {
+            padding: 12px 15px;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            font-family: 'Inter', sans-serif;
+            font-size: 1rem;
+            background-color: #f9f9f9;
+            cursor: pointer;
+            outline: none;
+            transition: border-color 0.3s ease;
+        }
+        
+        select:focus {
+            border-color: #333;
+        }
+
+        button {
+            padding: 12px 30px;
+            background-color: #111;
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            font-family: 'Inter', sans-serif;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.3s ease, transform 0.1s ease;
+        }
+
+        button:hover {
+            background-color: #333;
+        }
+
+        button:active {
+            transform: scale(0.98);
+        }
+        
+        button:disabled {
+            background-color: #999;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .output-section {
+            text-align: left;
+            display: none;
+            animation: fadeIn 0.5s ease;
+        }
+
+        .output-box {
+            background-color: #fcfcfc;
+            border: 1px solid #eaeaea;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .output-label {
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            font-weight: 600;
+            color: #888;
+            margin-bottom: 8px;
+            display: block;
+            letter-spacing: 0.5px;
+        }
+
+        .output-text {
+            font-size: 1.1rem;
+            line-height: 1.5;
+            color: #222;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>BhashaBridge</h1>
+        <div class="subtitle">Understand. Correct. Translate.</div>
+
+        <div class="input-group">
+            <textarea id="inputText" placeholder="Enter text to translate..."></textarea>
+        </div>
+
+        <div class="controls">
+            <select id="targetLanguage">
+                <option value="Hindi">Hindi</option>
+                <option value="Marathi">Marathi</option>
+                <option value="English">English</option>
+            </select>
+            <button id="translateBtn" onclick="handleTranslate()">Translate</button>
+        </div>
+
+        <div class="output-section" id="outputSection">
+            <div class="output-box">
+                <span class="output-label">Corrected Text</span>
+                <div class="output-text" id="correctedText"></div>
+            </div>
+            <div class="output-box">
+                <span class="output-label">Translated Text</span>
+                <div class="output-text" id="translatedText"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Connect to FastAPI backend
+        async function handleTranslate() {
+            const inputText = document.getElementById('inputText').value;
+            const targetLanguage = document.getElementById('targetLanguage').value;
+            const outputSection = document.getElementById('outputSection');
+            const correctedTextEl = document.getElementById('correctedText');
+            const translatedTextEl = document.getElementById('translatedText');
+            const btn = document.getElementById('translateBtn');
+
+            if (!inputText.trim()) {
+                alert("Please enter some text.");
+                return;
+            }
+
+            // Show loading state
+            btn.innerText = "Translating...";
+            btn.disabled = true;
+            outputSection.style.display = "none";
+            correctedTextEl.innerText = "";
+            translatedTextEl.innerText = "";
+
+            try {
+                // Call the FastAPI backend
+                const response = await fetch('/translate', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        text: inputText,
+                        target_language: targetLanguage
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Server Error: ${response.status}`);
+                }
+
+                const data = await response.json();
+
+                // Show output section with real data
+                outputSection.style.display = "block";
+                correctedTextEl.innerText = data.corrected_text || "No correction needed.";
+                translatedTextEl.innerText = data.translated_text || "Translation failed.";
+
+            } catch (error) {
+                alert("Error connecting to the translation server. Please ensure the backend is running (uvicorn main:app).");
+                console.error("Translation Error:", error);
+            } finally {
+                // Reset button state
+                btn.innerText = "Translate";
+                btn.disabled = false;
+            }
+        }
+    </script>
+</body>
+</html>

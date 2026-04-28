@@ -6,11 +6,11 @@ from openai import OpenAI
 # Load environment variables
 load_dotenv()
 
-# Initialize OpenAI client for xAI (Grok)
-# Assumes GROK_API_KEY is set in the environment or .env file
+# Initialize OpenAI client for Groq
+# Assumes GROQ_API_KEY is set in the environment or .env file
 client = OpenAI(
-    api_key=os.getenv("GROK_API_KEY"),
-    base_url="https://api.x.ai/v1",
+    api_key=os.getenv("GROQ_API_KEY"),
+    base_url="https://api.groq.com/openai/v1",
 )
 
 def translate_text(text: str, target_language: str) -> dict:
@@ -26,18 +26,22 @@ def translate_text(text: str, target_language: str) -> dict:
     """
     system_prompt = f"""You are BhashaBridge, an AI-powered language translation system. 
 Your task is to understand the meaning of the user's sentence, correct any grammatical errors in the original language, and then translate it naturally and fluently into {target_language}.
-Do NOT translate word-by-word. Focus on the natural expression and informal or incorrect English handling.
 
-You MUST respond ONLY with a JSON object in the following format:
+RULES:
+1. `corrected_text` MUST be grammatically correct and preserve the original meaning.
+2. `translated_text` MUST be natural and meaningful (do NOT translate word-by-word).
+3. You MUST respond ONLY with valid JSON. Do not include any extra text, explanations, or markdown blocks outside the JSON object.
+
+Return format:
 {{
-    "corrected_text": "The grammatically corrected version of the original input",
-    "translated_text": "The natural and fluent translation in {target_language}"
+  "corrected_text": "...",
+  "translated_text": "..."
 }}
 """
 
     try:
         response = client.chat.completions.create(
-            model="grok-beta", # Using xAI's grok model
+            model="llama3-8b-8192", # Using Groq's fast Llama 3 model
             messages=[
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": text}
@@ -47,8 +51,18 @@ You MUST respond ONLY with a JSON object in the following format:
         )
         
         # Parse the JSON response from OpenAI
-        result_json = response.choices[0].message.content
-        return json.loads(result_json)
+        result_text = response.choices[0].message.content
+        
+        # Clean up any potential markdown code blocks returned by the model
+        result_text = result_text.strip()
+        if result_text.startswith("```json"):
+            result_text = result_text[7:]
+        elif result_text.startswith("```"):
+            result_text = result_text[3:]
+        if result_text.endswith("```"):
+            result_text = result_text[:-3]
+            
+        return json.loads(result_text.strip())
         
     except Exception as e:
         # In a real system, you might want to log this or raise a custom exception

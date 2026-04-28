@@ -1,5 +1,6 @@
+import os
 from fastapi import FastAPI, HTTPException
-from fastapi.responses import RedirectResponse
+from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from translator import translate_text
@@ -20,10 +21,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Add a root endpoint so users don't see "Not Found" when visiting http://127.0.0.1:8000/
+# Serve the actual website UI when users visit http://127.0.0.1:8000/
 @app.get("/")
 async def root():
-    return RedirectResponse(url="/docs")
+    html_path = os.path.join(os.path.dirname(__file__), "..", "frontend", "index.html")
+    return FileResponse(html_path)
 
 # Define the expected Input data structure using Pydantic
 class TranslationRequest(BaseModel):

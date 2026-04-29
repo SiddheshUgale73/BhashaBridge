@@ -19,6 +19,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+@app.get("/")
+async def root():
+    return {"message": "Welcome to BhashaBridge API! Visit /docs for documentation."}
+
 # Define the expected Input data structure using Pydantic
 class TranslationRequest(BaseModel):
     text: str

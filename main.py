@@ -1,7 +1,10 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from translator import translate_text
+import os
 
 # Initialize FastAPI App
 app = FastAPI(
@@ -10,51 +13,56 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# Add CORS Middleware so frontends can communicate with this API
+# Add CORS Middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], # In production, replace "*" with your specific frontend domain
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-@app.get("/")
-async def root():
-    return {"message": "Welcome to BhashaBridge API! Visit /docs for documentation."}
+# ─── Serve the Chat UI at the root ───────────────────────────────────────────
+# This makes visiting http://127.0.0.1:8000 open the Chat UI directly
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+FRONTEND_HTML = os.path.join(BASE_DIR, "index.html")
 
-# Define the expected Input data structure using Pydantic
+@app.get("/", response_class=FileResponse)
+async def serve_ui():
+    """Serves the BhashaBridge Chat UI."""
+    return FileResponse(FRONTEND_HTML)
+
+# ─── API Models ───────────────────────────────────────────────────────────────
 class TranslationRequest(BaseModel):
     text: str
     target_language: str
 
-# Define the expected Output data structure using Pydantic
 class TranslationResponse(BaseModel):
     corrected_text: str
     translated_text: str
 
-# Create the POST /translate endpoint
+# ─── Translation Endpoint ─────────────────────────────────────────────────────
 @app.post("/translate", response_model=TranslationResponse)
 async def translate(request: TranslationRequest):
     """
     Translates the provided text into the target language, while correcting grammar.
     """
     try:
-        # Call the translate_text function from translator.py
         result = translate_text(request.text, request.target_language)
-        
-        # Check if our translation function returned an error internally
+
         if "error" in result and result["error"]:
             raise HTTPException(status_code=500, detail=result["error"])
-            
+
         return TranslationResponse(
             corrected_text=result.get("corrected_text", ""),
             translated_text=result.get("translated_text", "")
         )
-        
+
+    except HTTPException:
+        raise
     except Exception as e:
-        # Catch any unexpected errors and return a clean HTTP error
         raise HTTPException(status_code=500, detail=str(e))
 
-# To run the server for testing:
-# uvicorn main:app --reload
+# ─── Run Instructions ─────────────────────────────────────────────────────────
+# Step 1: uvicorn main:app --reload
+# Step 2: Open http://127.0.0.1:8000 in your browser
